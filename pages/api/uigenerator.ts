@@ -29,6 +29,10 @@ export default async function uigenerator(
   res: NextApiResponse<resData>
 ) {
 
+  if (req.method === 'OPTIONS') {
+    return res.status(200).send({message:'ok'});
+  }
+
   if (!configuration.apiKey) {
     res.status(500).json({
         message: "API key not configured."
