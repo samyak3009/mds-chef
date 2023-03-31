@@ -1,6 +1,13 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
+import generatePrompt from "../../utils/generatePrompt";
+import { Configuration, OpenAIApi } from "openai";
 
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const openai = new OpenAIApi(configuration);
 
 type resData = {
   query : string,
@@ -17,10 +24,17 @@ type resData = {
  * @returns {object} - Generated UI code in string format
  */
 
-export default function uigenerator(
+export default async function uigenerator(
   req: NextApiRequest,
   res: NextApiResponse<resData>
 ) {
+
+  if (!configuration.apiKey) {
+    res.status(500).json({
+        message: "API key not configured."
+    });
+    return;
+  }
 
     // Check if the request method is POST
     if (req.method !== 'POST') {
@@ -28,53 +42,44 @@ export default function uigenerator(
     }
   
     // Check if the required query and component fields are present in the request body
-    const { query, component } = req.body;
-    if (!query || !component) {
-      return res.status(400).json({ message: 'Bad Request' });
-    }
-
+    const { query='', component='' } = req.body;
+    if (query.trim().length === 0) {
+    res.status(400).json({
+        message: "Please enter a valid query",
+    });
+    return;
+  }
+  if (component.trim().length === 0) {
+    res.status(400).json({
+        message: "Please select a component",
+    });
+    return;
+  }
 
   // Generate UI code for the provided query and component
-  const uiCode = `() => {
-    const [open, setOpen] = React.useState(false);
-    const onClose = () => {
-      setOpen(!open);
-    };
-    const headerOptions = {
-      heading: 'Heading',
-      subHeading: 'Subheading'
-    };
-    const options = {
-      onClose,
-      open,
-      headerOptions,
-      footer: (
-        <>
-          <Button appearance="primary" className="mr-4">Primary</Button>
-          <Button appearance="basic">Basic</Button>
-        </>
-      )
-    };
-    const modalDescriptionOptions = {
-      title: 'Description Title',
-      description: 'Adding a subheading clearly indicates the hierarchy of the information.',
-      removePadding: true
-    };
-    const modalDescriptionOptionsWithoutTitle = {
-      description: 'Card Sections include supporting text like an article summary or a restaurant description.',
-      removePadding: true
-    };
-    return (
-      <div>
-        <Button appearance="primary" onClick={() => setOpen(true)}>Open Sidesheet</Button>
-        <Sidesheet {...options} dimension="large">
-          <Text>Modal Body</Text>
-          <ModalDescription {...modalDescriptionOptions} />
-          <ModalDescription {...modalDescriptionOptionsWithoutTitle} />
-        </Sidesheet>
-      </div>
-    );
-  }`;
-
-  return res.status(200).json({ query, component, code: uiCode });
+try {
+    const completion = await openai.createCompletion({
+      model: "text-davinci-003",
+      prompt: generatePrompt(component, query),
+      temperature: 0,
+      max_tokens: 3000,
+      top_p: 0,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+    });
+    // console.log(completion)
+    const code = completion?.data?.choices[0]?.text?.replace('AI:', '') || '';
+    res.status(200).json({query, component, code});
+  } catch(error: any) {
+    // Consider adjusting the error handling logic for your use case
+    if (error.response) {
+      console.error(error.response.status, error.response.data);
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      console.error(`Error with OpenAI API request: ${error.message}`);
+      res.status(500).json({
+          message: 'An error occurred during your request.',
+      });
+    }
+  }
 }
