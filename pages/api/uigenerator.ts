@@ -63,7 +63,7 @@ export default async function uigenerator(
   // Generate UI code for the provided query and component
 try {
     const completion = await openai.createCompletion({
-      model: "text-davinci-003",
+      model: process.env.MODEL_NAME || "text-davinci-003",
       prompt: generatePrompt(component, query),
       temperature: 0,
       max_tokens: 3000,
