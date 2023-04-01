@@ -62,17 +62,18 @@ export default async function uigenerator(
 
   // Generate UI code for the provided query and component
 try {
-    const completion = await openai.createCompletion({
-      model: process.env.MODEL_NAME || "text-davinci-003",
-      prompt: generatePrompt(component, query),
-      temperature: 0,
-      max_tokens: 3000,
-      top_p: 0,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-    });
+    const completion = await fetch("https://api.openai.com/v1/chat/completions", {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ""}`,
+    },
+    method: "POST",
+    body: JSON.stringify({
+      model: process.env.MODEL_NAME || "gpt-3.5-turbo",
+      messages: generatePrompt(component, query)}),
+  }).then(res => res.json());
     // console.log(completion)
-    const code = completion?.data?.choices[0]?.text?.replace('AI:', '') || '';
+    const code = completion?.choices[0]?.message?.content || '';
     res.status(200).json({query, component, code});
   } catch(error: any) {
     // Consider adjusting the error handling logic for your use case
