@@ -65,7 +65,7 @@ try {
     const completion = await openai.createCompletion({
       model: process.env.MODEL_NAME || "text-davinci-003",
       prompt: generatePrompt(component, query),
-      temperature: 0.3,
+      temperature: 0,
       max_tokens: 3000,
       top_p: 0,
       frequency_penalty: 0,
