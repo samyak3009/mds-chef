@@ -70,6 +70,9 @@ try {
       top_p: 0,
       frequency_penalty: 0,
       presence_penalty: 0,
+    },
+    {
+      timeout: 30000,
     });
     // console.log(completion)
     const code = completion?.data?.choices[0]?.text?.replace('AI:', '') || '';
